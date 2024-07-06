@@ -26,11 +26,12 @@ pub struct DnsHeader {
     /// Specifies the kind of query in a message
     pub opcode: OpCode,
     pub aa: AuthoritativeAnswer,
-    /// Truncated message, true if the message is larger than 512 bytes. Always false for DNS over UDP.
+    /// Specifies whether the message should be truncated,
+    /// truncated if the message is larger than 512 bytes. Always not truncated for DNS over UDP.
     pub tc: Truncated,
-    /// Recursion desired, true if the client wants the server to perform recursive resolution.
+    /// Specifies the recursion desire, desired if the client wants the server to perform recursive resolution.
     pub rd: RecursionDesire,
-    /// Recursion available, true if the server supports recursive resolution.
+    /// Specifies the recursion availablility, available if the server supports recursive resolution.
     pub ra: RecursionAvailability,
     /// At inception, it was reserved for future use
     pub z: Z,
@@ -48,69 +49,80 @@ pub struct DnsHeader {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QueryResponse {
+    /// (0) Question
     Question,
+    /// (1) Reply
     Reply,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpCode {
-    /// 0 Standard query
+    /// (0) Standard query
     Query,
-    /// 1 Inverse query
+    /// (1) Inverse query
     IQuery,
-    /// 2 Server status request
+    /// (2) Server status request
     Status,
-    // 3 - 15 reserved for future use
+    /// (3 - 15) reserved for future use
     Reserved(u8),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AuthoritativeAnswer {
+    /// (0) Non-authoritative
     NonAuthoritative,
+    /// (1) Authoritative
     Authoritative,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Truncated {
+    /// (0) Message is not truncated
     NotTruncated,
+    /// (1) Message is truncated
     Truncated,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecursionDesire {
+    /// (0) Recursion not desired
     NotDesired,
+    /// (1) Recursion desired
     Desired,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecursionAvailability {
+    /// (0) Recursion not available
     NotAvailable,
+    /// (1) Recursion available
     Available,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Z {
+    /// (0 - 7) Reserved
     Reserved,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResponseCode {
-    /// No error condition
+    /// (0) No error condition
     NoErrorCondition,
-    /// The name server was unable to interpret the query.
+    /// (1) The name server was unable to interpret the query.
     FormatError,
-    /// The name server was unable to process this query due to a problem with the name server.
+    /// (2) The name server was unable to process this query due to a problem with the name server.
     ServerFailure,
-    /// Meaningful only for responses from an authoritative name server,
+    /// (3) Meaningful only for responses from an authoritative name server,
     /// this code signifies that the domain name referenced in the query does not exist.
     NameError,
-    /// The name server does not support the requested kind of query.
+    /// (4) The name server does not support the requested kind of query.
     NotImplemented,
-    /// The name server refuses to perform the specified operation for policy reasons.
+    /// (5) The name server refuses to perform the specified operation for policy reasons.
     /// For example, a name server may not wish to provide the information to the
     /// particular requester, or a name server may not wish to perform a particular
     /// operation (e.g., zone transfer) for particular data.
     Refused,
-    // 6 - 15 reserved for future use
+    // (6 - 15) reserved for future use
     Reserved(u8),
 }
