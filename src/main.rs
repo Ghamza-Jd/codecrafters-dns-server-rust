@@ -1,8 +1,10 @@
+pub mod dns_answer;
 pub mod dns_header;
 pub mod dns_message;
 pub mod dns_question;
 pub mod resrec;
 
+use dns_answer::answer::DnsAnswer;
 use dns_header::header::{
     AuthoritativeAnswer, DnsHeader, OpCode, QueryResponse, RecursionAvailability, RecursionDesire,
     ResponseCode, Truncated, Z,
@@ -10,7 +12,7 @@ use dns_header::header::{
 use dns_message::message::DnsMessage;
 use dns_question::question::DnsQuestion;
 use resrec::{QClass, QType};
-use std::net::UdpSocket;
+use std::net::{Ipv4Addr, UdpSocket};
 
 fn main() {
     println!("Logs from your program will appear here!");
@@ -33,7 +35,7 @@ fn main() {
                     z: Z::Reserved,
                     rcode: ResponseCode::NoErrorCondition,
                     qdcount: 1,
-                    ancount: 0,
+                    ancount: 1,
                     nscount: 0,
                     arcount: 0,
                 };
@@ -42,10 +44,19 @@ fn main() {
                     qtype: QType::A,
                     qclass: QClass::IN,
                 };
+                let answer = DnsAnswer {
+                    name: vec!["codecrafters".to_string(), "io".to_string()],
+                    typ: QType::A,
+                    class: QClass::IN,
+                    ttl: 60,
+                    rdlength: 4,
+                    rddata: vec![Ipv4Addr::new(8, 8, 8, 8)],
+                };
 
                 let message = DnsMessage {
                     header,
                     questions: vec![question],
+                    answer,
                 };
                 let message: Vec<u8> = message.as_bytes();
                 let response: &[u8] = &message;

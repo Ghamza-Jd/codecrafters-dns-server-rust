@@ -7,6 +7,7 @@ impl DnsMessage {
         self.questions.iter().for_each(|q| {
             bytes.append(&mut q.as_bytes());
         });
+        bytes.append(&mut self.answer.as_bytes());
         bytes
     }
 }
