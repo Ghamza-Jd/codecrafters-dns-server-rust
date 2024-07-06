@@ -74,11 +74,11 @@ impl Truncated {
 
 impl RecursionDesire {
     fn as_byte(&self) -> u8 {
-        let val = match self {
+        
+        match self {
             RecursionDesire::NotDesired => 0,
             RecursionDesire::Desired => 1,
-        };
-        val
+        }
     }
 }
 
@@ -100,7 +100,8 @@ impl Z {
 
 impl ResponseCode {
     fn as_byte(&self) -> u8 {
-        let val = match self {
+        
+        match self {
             ResponseCode::NoErrorCondition => 0,
             ResponseCode::FormatError => 1,
             ResponseCode::ServerFailure => 2,
@@ -108,8 +109,7 @@ impl ResponseCode {
             ResponseCode::NotImplemented => 4,
             ResponseCode::Refused => 5,
             ResponseCode::Reserved(value) => *value,
-        };
-        val
+        }
     }
 }
 
