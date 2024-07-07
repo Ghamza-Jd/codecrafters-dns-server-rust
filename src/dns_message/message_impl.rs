@@ -29,13 +29,9 @@ impl DnsMessage {
 impl From<&[u8]> for DnsMessage {
     fn from(bytes: &[u8]) -> Self {
         let header = DnsHeader::from(&bytes[0..12]);
-        let question = DnsQuestion {
-            qname: vec!["codecrafters".to_string(), "io".to_string()],
-            qtype: QType::A,
-            qclass: QClass::IN,
-        };
+        let question = DnsQuestion::from(&bytes[12..]);
         let answer = DnsAnswer {
-            name: vec!["codecrafters".to_string(), "io".to_string()],
+            name: question.qname.clone(),
             typ: QType::A,
             class: QClass::IN,
             ttl: 60,
