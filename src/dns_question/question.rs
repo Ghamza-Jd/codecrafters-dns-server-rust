@@ -15,7 +15,7 @@ use crate::resrec::{QClass, QType};
 /// |                     QCLASS                    |
 /// +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 /// ```
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DnsQuestion {
     pub qname: Vec<String>,
     pub qtype: QType,

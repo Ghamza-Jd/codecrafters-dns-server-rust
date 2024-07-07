@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QType {
     /// a host address
     A = 1,
@@ -42,7 +42,7 @@ pub enum QType {
     WildCard = 255,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QClass {
     /// the Internet
     IN = 1,
@@ -54,4 +54,43 @@ pub enum QClass {
     HS = 4,
     /// any class
     WildCard = 255,
+}
+
+impl From<u8> for QType {
+    fn from(val: u8) -> Self {
+        match val {
+            1 => QType::A,
+            2 => QType::NS,
+            3 => QType::MD,
+            4 => QType::MF,
+            5 => QType::CNAME,
+            6 => QType::SOA,
+            7 => QType::MB,
+            8 => QType::MG,
+            9 => QType::MR,
+            10 => QType::NULL,
+            11 => QType::WKS,
+            12 => QType::PTR,
+            13 => QType::HINFO,
+            14 => QType::MINFO,
+            15 => QType::MX,
+            16 => QType::TXT,
+            252 => QType::AXFR,
+            253 => QType::MAILB,
+            254 => QType::MAILA,
+            _ => QType::WildCard,
+        }
+    }
+}
+
+impl From<u8> for QClass {
+    fn from(val: u8) -> Self {
+        match val {
+            1 => QClass::IN,
+            2 => QClass::CS,
+            3 => QClass::CH,
+            4 => QClass::HS,
+            _ => QClass::WildCard,
+        }
+    }
 }
