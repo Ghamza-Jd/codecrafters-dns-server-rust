@@ -1,4 +1,11 @@
 use super::message::DnsMessage;
+use crate::{
+    dns_answer::answer::DnsAnswer,
+    dns_header::header::{DnsHeader, QueryResponse},
+    dns_question::question::DnsQuestion,
+    resrec::{QClass, QType},
+};
+use std::net::Ipv4Addr;
 
 impl DnsMessage {
     pub fn as_bytes(&self) -> Vec<u8> {
@@ -9,6 +16,37 @@ impl DnsMessage {
         });
         bytes.append(&mut self.answer.as_bytes());
         bytes
+    }
+
+    pub fn to_response(&mut self) {
+        self.header.qr = QueryResponse::Reply;
+        if let Ok(ancount) = self.answer.rddata.len().try_into() {
+            self.header.ancount = ancount;
+        }
+    }
+}
+
+impl From<&[u8]> for DnsMessage {
+    fn from(bytes: &[u8]) -> Self {
+        let header = DnsHeader::from(&bytes[0..12]);
+        let question = DnsQuestion {
+            qname: vec!["codecrafters".to_string(), "io".to_string()],
+            qtype: QType::A,
+            qclass: QClass::IN,
+        };
+        let answer = DnsAnswer {
+            name: vec!["codecrafters".to_string(), "io".to_string()],
+            typ: QType::A,
+            class: QClass::IN,
+            ttl: 60,
+            rdlength: 4,
+            rddata: vec![Ipv4Addr::new(8, 8, 8, 8)],
+        };
+        DnsMessage {
+            header,
+            questions: vec![question],
+            answer,
+        }
     }
 }
 

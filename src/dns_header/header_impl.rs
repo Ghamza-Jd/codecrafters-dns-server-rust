@@ -2,9 +2,9 @@ use super::header::{
     AuthoritativeAnswer, DnsHeader, OpCode, QueryResponse, RecursionAvailability, RecursionDesire,
     ResponseCode, Truncated, Z,
 };
-use bytes::BufMut;
+use bytes::{Buf, BufMut, BytesMut};
 
-// Six sections in the header, each 2 bytes long
+/// Six sections in the header, each 2 bytes long
 const HEADER_SIZE_IN_BYTES: usize = 2 * 6;
 
 impl DnsHeader {
@@ -30,6 +30,52 @@ impl DnsHeader {
     }
 }
 
+impl From<&[u8]> for DnsHeader {
+    fn from(val: &[u8]) -> Self {
+        let mut header = BytesMut::with_capacity(HEADER_SIZE_IN_BYTES);
+        header.put(&val[0..HEADER_SIZE_IN_BYTES]);
+        let packet_id = header.get_u16();
+        let left_meta = header.get_u8();
+        let right_meta = header.get_u8();
+        let qdcount = header.get_u16();
+        let ancount = header.get_u16();
+        let nscount = header.get_u16();
+        let arcount = header.get_u16();
+
+        let qr = QueryResponse::from(left_meta);
+        let opcode = OpCode::from(left_meta);
+        let aa = AuthoritativeAnswer::from(left_meta);
+        let tc = Truncated::from(left_meta);
+        let rd = RecursionDesire::from(left_meta);
+
+        let ra = RecursionAvailability::from(right_meta);
+        let z = Z::from(right_meta);
+
+        let rcode = match opcode {
+            OpCode::IQuery => ResponseCode::NotImplemented,
+            OpCode::Status => ResponseCode::NotImplemented,
+            OpCode::Reserved(_) => ResponseCode::NotImplemented,
+            _ => ResponseCode::from(right_meta),
+        };
+
+        DnsHeader {
+            packet_id,
+            qr,
+            opcode,
+            aa,
+            tc,
+            rd,
+            ra,
+            z,
+            rcode,
+            qdcount,
+            ancount,
+            nscount,
+            arcount,
+        }
+    }
+}
+
 impl QueryResponse {
     fn as_byte(&self) -> u8 {
         let val = match self {
@@ -37,6 +83,16 @@ impl QueryResponse {
             QueryResponse::Reply => 1,
         };
         val << 7
+    }
+}
+
+impl From<u8> for QueryResponse {
+    fn from(val: u8) -> Self {
+        let val = (val & 0b1000_0000) >> 7;
+        match val {
+            0 => QueryResponse::Question,
+            _ => QueryResponse::Reply,
+        }
     }
 }
 
@@ -52,6 +108,18 @@ impl OpCode {
     }
 }
 
+impl From<u8> for OpCode {
+    fn from(val: u8) -> Self {
+        let val = (val & 0b0111_1000) >> 3;
+        match val {
+            0 => OpCode::Query,
+            1 => OpCode::IQuery,
+            2 => OpCode::Status,
+            _ => OpCode::Reserved(val),
+        }
+    }
+}
+
 impl AuthoritativeAnswer {
     fn as_byte(&self) -> u8 {
         let val = match self {
@@ -59,6 +127,16 @@ impl AuthoritativeAnswer {
             AuthoritativeAnswer::Authoritative => 1,
         };
         val << 2
+    }
+}
+
+impl From<u8> for AuthoritativeAnswer {
+    fn from(val: u8) -> Self {
+        let val = (val & 0b0100_0000) >> 2;
+        match val {
+            0 => AuthoritativeAnswer::NonAuthoritative,
+            _ => AuthoritativeAnswer::Authoritative,
+        }
     }
 }
 
@@ -72,12 +150,31 @@ impl Truncated {
     }
 }
 
+impl From<u8> for Truncated {
+    fn from(val: u8) -> Self {
+        let val = (val & 0b0000_0010) >> 1;
+        match val {
+            0 => Truncated::NotTruncated,
+            _ => Truncated::Truncated,
+        }
+    }
+}
+
 impl RecursionDesire {
     fn as_byte(&self) -> u8 {
-        
         match self {
             RecursionDesire::NotDesired => 0,
             RecursionDesire::Desired => 1,
+        }
+    }
+}
+
+impl From<u8> for RecursionDesire {
+    fn from(val: u8) -> Self {
+        let val = val & 0b0000_0001;
+        match val {
+            0 => RecursionDesire::NotDesired,
+            _ => RecursionDesire::Desired,
         }
     }
 }
@@ -92,15 +189,30 @@ impl RecursionAvailability {
     }
 }
 
+impl From<u8> for RecursionAvailability {
+    fn from(val: u8) -> Self {
+        let val = (val & 0b1000_0000) >> 7;
+        match val {
+            0 => RecursionAvailability::NotAvailable,
+            _ => RecursionAvailability::Available,
+        }
+    }
+}
+
 impl Z {
     fn as_byte(&self) -> u8 {
         0 << 4
     }
 }
 
+impl From<u8> for Z {
+    fn from(_: u8) -> Self {
+        Z::Reserved
+    }
+}
+
 impl ResponseCode {
     fn as_byte(&self) -> u8 {
-        
         match self {
             ResponseCode::NoErrorCondition => 0,
             ResponseCode::FormatError => 1,
@@ -109,6 +221,21 @@ impl ResponseCode {
             ResponseCode::NotImplemented => 4,
             ResponseCode::Refused => 5,
             ResponseCode::Reserved(value) => *value,
+        }
+    }
+}
+
+impl From<u8> for ResponseCode {
+    fn from(val: u8) -> Self {
+        let val = val & 0b0000_1111;
+        match val {
+            0 => ResponseCode::NoErrorCondition,
+            1 => ResponseCode::FormatError,
+            2 => ResponseCode::ServerFailure,
+            3 => ResponseCode::NameError,
+            4 => ResponseCode::NotImplemented,
+            5 => ResponseCode::Refused,
+            _ => ResponseCode::Reserved(val),
         }
     }
 }
@@ -124,21 +251,35 @@ mod tests {
     fn simple_header_as_bytes_test() {
         let bytes = DnsHeader {
             packet_id: 1234,
-            qr: QueryResponse::Reply,
-            opcode: OpCode::IQuery,
+            qr: QueryResponse::Question,
+            opcode: OpCode::Query,
             aa: AuthoritativeAnswer::NonAuthoritative,
             tc: Truncated::NotTruncated,
             rd: RecursionDesire::NotDesired,
             ra: RecursionAvailability::NotAvailable,
             z: Z::Reserved,
             rcode: ResponseCode::NoErrorCondition,
-            qdcount: 0,
-            ancount: 0,
+            qdcount: 1,
+            ancount: 1,
             nscount: 0,
             arcount: 0,
         }
         .as_bytes();
-        assert_eq!(bytes, vec![4, 210, 136, 0, 0, 0, 0, 0, 0, 0, 0, 0,])
+        let expected_bytes = vec![
+            0b0000_0100,
+            0b1101_0010,
+            0b0000_0000,
+            0b0000_0000,
+            0b0000_0000,
+            0b0000_0001,
+            0b0000_0000,
+            0b0000_0001,
+            0b0000_0000,
+            0b0000_0000,
+            0b0000_0000,
+            0b0000_0000,
+        ];
+        assert_eq!(bytes, expected_bytes)
     }
 
     #[test]
